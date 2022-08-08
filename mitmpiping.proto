@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+//说明：browsermob-proxy等代理已经不再更新了，还是使用mitmproxy吧，mitmproxy只有python版，在python中监控流量，需通过接口转接到java中，这里使用gRPC方式
+
+//java端编译proto文件
+//把proto文件拷贝到resources根目录，然后执行mvn clean compile，即可生成java端gRPC代码（MitmProxyBrokerGrpc、MitmProxyPipingProto、MitmProxyCallbackGrpc等）
+option java_multiple_files = true;
+option java_package = "com.dzf.yjbs.declare.mitmpiping";
+option java_outer_classname = "MitmProxyPipingProto";
+
+//python端编译proto文件
+//进入项目下的 resource/python 目录
+//cd resource/python
+//python -m grpc_tools.protoc --python_out=./mitmproxy-piping/ --grpc_python_out=./mitmproxy-piping/ -I. ../proto/mitmpiping.proto
+//自动生成python端gRPC代码（mitmpiping_pb2.py、mitmpiping_pb2_grpc.py等）
+
+//启动mitmproxy-piping转接程序
+//cd mitmproxy-piping
+//python server.py
+
+package mitmpiping;
+
+// MitmProxyBroker负责启动mitmproxy和通知回调client端
+service MitmProxyBroker {
+    // 启动mitmproxy的命令
+    rpc start(MitmproxyStartRequest) returns (ResultResponse) {}
+    // 停止mitmproxy的命令
+	rpc stop(google.protobuf.Empty) returns (ResultResponse) {}
+}
+
+// java回调接口，它接收mitmproxy-piping转发的mitmproxy流量的回调，修改后返回给mitmproxy-piping
+service MitmProxyCallback {
+    // 监控处理请求的接口，mitmproxy在监控流量请求时调用此java接口
+    rpc onMitmRequest(MitmRequest) returns (MitmRequest) {}
+
+    // 监控处理响应的接口，mitmproxy在监控流量响应时调用此java接口
+    rpc onMitmResponse(MitmResponse) returns (MitmResponse) {}
+}
+
+// 启动mitmproxy命令的参数
+message MitmproxyStartRequest {
+	string host = 1;
+	int32 port = 2;
+	string callbackAddr = 3;
+	int32 callbackPort = 4;
+	// string upstream = 5;
+	// string upstreamAuth = 6;
+	string includeUrlPat = 5;
+	string excludeUrlPat =6;
+}
+
+// 停止命令暂不需要参数，直接使用google.protobuf.Empty即可
+
+// 通用结果Response
+message ResultResponse {
+	bool success = 1;
+	string resultCode = 2;
+	string message = 3;
+}
+
+message MitmHeader {
+	string name = 1;
+	string value = 2;
+}
+
+message MitmRequest {
+	string url = 1;
+	string method = 2;
+	repeated MitmHeader headers = 3;
+	bytes content = 4;
+}
+
+message MitmResponse {
+	MitmRequest request = 1;
+	repeated MitmHeader headers = 2;
+	int32 statusCode = 3;
+	bytes content = 4;
+}

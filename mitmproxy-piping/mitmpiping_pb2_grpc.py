@@ -2,11 +2,12 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import mitm_hub_pb2 as mitm__hub__pb2
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
+import mitmpiping_pb2 as mitmpiping__pb2
 
 
-class MitmProxyHubServerStub(object):
-    """MitmProxyHubServer负责启动mitmproxy和通知回调client端
+class MitmProxyBrokerStub(object):
+    """MitmProxyBroker负责启动mitmproxy和通知回调client端
     """
 
     def __init__(self, channel):
@@ -16,55 +17,57 @@ class MitmProxyHubServerStub(object):
             channel: A grpc.Channel.
         """
         self.start = channel.unary_unary(
-                '/mitm.MitmProxyHubServer/start',
-                request_serializer=mitm__hub__pb2.MitmproxyStartRequest.SerializeToString,
-                response_deserializer=mitm__hub__pb2.MitmproxyStartResponse.FromString,
+                '/mitmpiping.MitmProxyBroker/start',
+                request_serializer=mitmpiping__pb2.MitmproxyStartRequest.SerializeToString,
+                response_deserializer=mitmpiping__pb2.ResultResponse.FromString,
                 )
         self.stop = channel.unary_unary(
-                '/mitm.MitmProxyHubServer/stop',
-                request_serializer=mitm__hub__pb2.MitmproxyStopRequest.SerializeToString,
-                response_deserializer=mitm__hub__pb2.VoidResponse.FromString,
+                '/mitmpiping.MitmProxyBroker/stop',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+                response_deserializer=mitmpiping__pb2.ResultResponse.FromString,
                 )
 
 
-class MitmProxyHubServerServicer(object):
-    """MitmProxyHubServer负责启动mitmproxy和通知回调client端
+class MitmProxyBrokerServicer(object):
+    """MitmProxyBroker负责启动mitmproxy和通知回调client端
     """
 
     def start(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """启动mitmproxy的命令
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def stop(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """停止mitmproxy的命令
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_MitmProxyHubServerServicer_to_server(servicer, server):
+def add_MitmProxyBrokerServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'start': grpc.unary_unary_rpc_method_handler(
                     servicer.start,
-                    request_deserializer=mitm__hub__pb2.MitmproxyStartRequest.FromString,
-                    response_serializer=mitm__hub__pb2.MitmproxyStartResponse.SerializeToString,
+                    request_deserializer=mitmpiping__pb2.MitmproxyStartRequest.FromString,
+                    response_serializer=mitmpiping__pb2.ResultResponse.SerializeToString,
             ),
             'stop': grpc.unary_unary_rpc_method_handler(
                     servicer.stop,
-                    request_deserializer=mitm__hub__pb2.MitmproxyStopRequest.FromString,
-                    response_serializer=mitm__hub__pb2.VoidResponse.SerializeToString,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                    response_serializer=mitmpiping__pb2.ResultResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'mitm.MitmProxyHubServer', rpc_method_handlers)
+            'mitmpiping.MitmProxyBroker', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
-class MitmProxyHubServer(object):
-    """MitmProxyHubServer负责启动mitmproxy和通知回调client端
+class MitmProxyBroker(object):
+    """MitmProxyBroker负责启动mitmproxy和通知回调client端
     """
 
     @staticmethod
@@ -78,9 +81,9 @@ class MitmProxyHubServer(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/mitm.MitmProxyHubServer/start',
-            mitm__hub__pb2.MitmproxyStartRequest.SerializeToString,
-            mitm__hub__pb2.MitmproxyStartResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/mitmpiping.MitmProxyBroker/start',
+            mitmpiping__pb2.MitmproxyStartRequest.SerializeToString,
+            mitmpiping__pb2.ResultResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -95,15 +98,15 @@ class MitmProxyHubServer(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/mitm.MitmProxyHubServer/stop',
-            mitm__hub__pb2.MitmproxyStopRequest.SerializeToString,
-            mitm__hub__pb2.VoidResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/mitmpiping.MitmProxyBroker/stop',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            mitmpiping__pb2.ResultResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
 
-class MitmProxyHubClientServerStub(object):
-    """java客户端server实现，它接收mitmproxy流量的回调，修改并返回给python端
+class MitmProxyCallbackStub(object):
+    """java回调接口，它接收mitmproxy-piping转发的mitmproxy流量的回调，修改后返回给mitmproxy-piping
     """
 
     def __init__(self, channel):
@@ -113,55 +116,57 @@ class MitmProxyHubClientServerStub(object):
             channel: A grpc.Channel.
         """
         self.onMitmRequest = channel.unary_unary(
-                '/mitm.MitmProxyHubClientServer/onMitmRequest',
-                request_serializer=mitm__hub__pb2.MitmRequest.SerializeToString,
-                response_deserializer=mitm__hub__pb2.MitmRequest.FromString,
+                '/mitmpiping.MitmProxyCallback/onMitmRequest',
+                request_serializer=mitmpiping__pb2.MitmRequest.SerializeToString,
+                response_deserializer=mitmpiping__pb2.MitmRequest.FromString,
                 )
         self.onMitmResponse = channel.unary_unary(
-                '/mitm.MitmProxyHubClientServer/onMitmResponse',
-                request_serializer=mitm__hub__pb2.MitmResponse.SerializeToString,
-                response_deserializer=mitm__hub__pb2.MitmResponse.FromString,
+                '/mitmpiping.MitmProxyCallback/onMitmResponse',
+                request_serializer=mitmpiping__pb2.MitmResponse.SerializeToString,
+                response_deserializer=mitmpiping__pb2.MitmResponse.FromString,
                 )
 
 
-class MitmProxyHubClientServerServicer(object):
-    """java客户端server实现，它接收mitmproxy流量的回调，修改并返回给python端
+class MitmProxyCallbackServicer(object):
+    """java回调接口，它接收mitmproxy-piping转发的mitmproxy流量的回调，修改后返回给mitmproxy-piping
     """
 
     def onMitmRequest(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """监控处理请求的接口，mitmproxy在监控流量请求时调用此java接口
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def onMitmResponse(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """监控处理响应的接口，mitmproxy在监控流量响应时调用此java接口
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_MitmProxyHubClientServerServicer_to_server(servicer, server):
+def add_MitmProxyCallbackServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'onMitmRequest': grpc.unary_unary_rpc_method_handler(
                     servicer.onMitmRequest,
-                    request_deserializer=mitm__hub__pb2.MitmRequest.FromString,
-                    response_serializer=mitm__hub__pb2.MitmRequest.SerializeToString,
+                    request_deserializer=mitmpiping__pb2.MitmRequest.FromString,
+                    response_serializer=mitmpiping__pb2.MitmRequest.SerializeToString,
             ),
             'onMitmResponse': grpc.unary_unary_rpc_method_handler(
                     servicer.onMitmResponse,
-                    request_deserializer=mitm__hub__pb2.MitmResponse.FromString,
-                    response_serializer=mitm__hub__pb2.MitmResponse.SerializeToString,
+                    request_deserializer=mitmpiping__pb2.MitmResponse.FromString,
+                    response_serializer=mitmpiping__pb2.MitmResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'mitm.MitmProxyHubClientServer', rpc_method_handlers)
+            'mitmpiping.MitmProxyCallback', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
-class MitmProxyHubClientServer(object):
-    """java客户端server实现，它接收mitmproxy流量的回调，修改并返回给python端
+class MitmProxyCallback(object):
+    """java回调接口，它接收mitmproxy-piping转发的mitmproxy流量的回调，修改后返回给mitmproxy-piping
     """
 
     @staticmethod
@@ -175,9 +180,9 @@ class MitmProxyHubClientServer(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/mitm.MitmProxyHubClientServer/onMitmRequest',
-            mitm__hub__pb2.MitmRequest.SerializeToString,
-            mitm__hub__pb2.MitmRequest.FromString,
+        return grpc.experimental.unary_unary(request, target, '/mitmpiping.MitmProxyCallback/onMitmRequest',
+            mitmpiping__pb2.MitmRequest.SerializeToString,
+            mitmpiping__pb2.MitmRequest.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -192,8 +197,8 @@ class MitmProxyHubClientServer(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/mitm.MitmProxyHubClientServer/onMitmResponse',
-            mitm__hub__pb2.MitmResponse.SerializeToString,
-            mitm__hub__pb2.MitmResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/mitmpiping.MitmProxyCallback/onMitmResponse',
+            mitmpiping__pb2.MitmResponse.SerializeToString,
+            mitmpiping__pb2.MitmResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
